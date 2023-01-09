@@ -1,0 +1,1000 @@
+Create the details of selection criteria
+
+public ResponseEntity<?> createSchoolResearch(String studentId, String productId, List<DecisionMatrixModel> studentResearch) {
+        StudentProduct studentProduct = studentProductRepository.findByStudentIdAndProductId(studentId, productId);
+        if (studentProduct != null) {
+            QuadrantsModel quadrantsList = new QuadrantsModel();
+            List<String> quadrantList1 = new ArrayList<>();
+            List<String> quadrantList2 = new ArrayList<>();
+            List<String> quadrantList3 = new ArrayList<>();
+            List<String> quadrantList4 = new ArrayList<>();
+            StudentSchoolSelectionResearchCriteria studentSelectionCriteria = new StudentSchoolSelectionResearchCriteria();
+            for (DecisionMatrixModel studentSchoolSelectionResearchCriteria : studentResearch) {
+                if (studentSchoolSelectionResearchCriteria.getId() != null) {
+                    Optional<SchoolResearchSelectionCriteria> schoolResearchSelectionCriteria = schoolResearchSelectionCriteriaRepository.
+                            findById(studentSchoolSelectionResearchCriteria.getId());
+                    if (schoolResearchSelectionCriteria.isPresent()) {
+                        StudentSchoolSelectionResearchCriteria studentSchoolSelectCriteria = studentSchoolSelectionResearchCriteriaRepository.
+                                findBySchoolResearchSelectionCriteriaAndStudentProduct(schoolResearchSelectionCriteria.get(), studentProduct);
+                        if (studentSchoolSelectCriteria == null) {
+                            studentSelectionCriteria = new StudentSchoolSelectionResearchCriteria();
+                        }
+                        if (studentSchoolSelectCriteria != null) {
+                            studentSelectionCriteria = studentSchoolSelectCriteria;
+                        }
+                        studentSelectionCriteria.setIdealPreference(studentSchoolSelectionResearchCriteria.getIdealPreference());
+                        studentSelectionCriteria.setImportance(studentSchoolSelectionResearchCriteria.getImportance());
+                        studentSelectionCriteria.setNegotiability(studentSchoolSelectionResearchCriteria.getNegotiability());
+                        studentSelectionCriteria.setStudentProduct(studentProduct);
+                        studentSelectionCriteria.setSchoolResearchSelectionCriteria(schoolResearchSelectionCriteria.get());
+                        studentSchoolSelectionResearchCriteriaRepository.save(studentSelectionCriteria);
+                        if (studentSelectionCriteria.getImportance() != null && studentSelectionCriteria.getNegotiability() != null) {
+                            if (studentSelectionCriteria.getImportance().equals(true) && studentSelectionCriteria.getNegotiability().equals(false)) {
+                                quadrantList1.add(schoolResearchSelectionCriteria.get().getParameterName());
+                                quadrantsList.setQuadrant1(quadrantList1);
+                            } else if (studentSelectionCriteria.getImportance().equals(false) && studentSelectionCriteria.getNegotiability().equals(false)) {
+                                quadrantList2.add(schoolResearchSelectionCriteria.get().getParameterName());
+                                quadrantsList.setQuadrant2(quadrantList2);
+                            } else if (studentSelectionCriteria.getImportance().equals(false) && studentSelectionCriteria.getNegotiability().equals(true)) {
+                                quadrantList3.add(schoolResearchSelectionCriteria.get().getParameterName());
+                                quadrantsList.setQuadrant3(quadrantList3);
+                            } else if (studentSelectionCriteria.getImportance().equals(true) && studentSelectionCriteria.getNegotiability().equals(true)) {
+                                quadrantList4.add(schoolResearchSelectionCriteria.get().getParameterName());
+                                quadrantsList.setQuadrant4(quadrantList4);
+                            }
+                        }
+                    }
+                }
+            }
+            return ResponseEntity.ok(new ResponseModel(true, "Saved Successfully", quadrantsList));
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student Product not found",
+                new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+Update the details of preferences
+
+public ResponseEntity<?> createSchoolResearchPreferences(String studentId, String productId,
+                                                             List<SchoolResearchPreferenceModel> preferences) {
+        StudentProduct studentProduct = getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            List<PreferenceModel> preferenceModelList = new ArrayList<>();
+            for (SchoolResearchPreferenceModel preferredSchool : preferences) {
+                if (preferredSchool.getDegree() != null && preferredSchool.getAreaOfSpecialization() != null &&
+                        preferredSchool.getFieldOfStudy() != null && preferredSchool.getPreferredRegion() != null) {
+                    for (AspirationDegree degrees : preferredSchool.getDegree()) {
+                        Optional<AspirationDegree> degree = aspirationsDegreeRepository.findById(degrees.getId());
+                        for (AspirationBranch branch : preferredSchool.getFieldOfStudy()) {
+                            Optional<AspirationBranch> aspirationBranch = aspirationsBranchRepository.findById(branch.getId());
+                            for (AspirationAreaOfSpecialization area : preferredSchool.getAreaOfSpecialization()) {
+                                Optional<AspirationAreaOfSpecialization> areaOfSpecialization = aspirationsAreaOfSpecializationRepository.findById(area.getId());
+                                for (Region region : preferredSchool.getPreferredRegion()) {
+                                    Optional<Region> _region = regionRepository.findById(region.getId());
+                                    if (degree.isPresent() && aspirationBranch.isPresent() && areaOfSpecialization.isPresent() && _region.isPresent()) {
+                                        SchoolResearchPreference preference = schoolResearchPreferenceRepository.
+                                                findByDegreeAndFieldOfStudyAndAreaOfSpecializationsAndPreferredRegionAndStudentProduct
+                                                        (degree.get(), aspirationBranch.get(), areaOfSpecialization.get(), _region.get(), studentProduct);
+                                        PreferenceModel preferenceModel = new PreferenceModel();
+                                        SchoolResearchPreference savePreferredSchool = new SchoolResearchPreference();
+                                        if (preference == null) {
+                                            savePreferredSchool = new SchoolResearchPreference();
+                                            savePreferredSchool.setCreatedAt(ZonedDateTime.now());
+                                            List<SchoolResearchPreference> preferSchoolList = schoolResearchPreferenceRepository.findByStudentProduct(studentProduct);
+                                            if (!preferSchoolList.isEmpty()) {
+                                                savePreferredSchool.setOrderNo(preferSchoolList.size() + 1);
+                                                preferenceModel.setPreferenceName("Preference " + (preferSchoolList.size() + 1));
+                                            } else {
+                                                savePreferredSchool.setOrderNo(1);
+                                                preferenceModel.setPreferenceName("Preference 1");
+                                            }
+                                        }
+                                        if (preference != null) {
+                                            savePreferredSchool = preference;
+                                            savePreferredSchool.setUpdatedAt(ZonedDateTime.now());
+                                        }
+                                        savePreferredSchool.setStudentProduct(studentProduct);
+                                        savePreferredSchool.setDegree(degree.get());
+                                        savePreferredSchool.setFieldOfStudy(aspirationBranch.get());
+                                        savePreferredSchool.setAreaOfSpecializations(areaOfSpecialization.get());
+                                        savePreferredSchool.setPreferredRegion(_region.get());
+                                        schoolResearchPreferenceRepository.save(savePreferredSchool);
+                                        preferenceModel.setPreferredProgram(savePreferredSchool);
+                                        preferenceModelList.add(preferenceModel);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return new ResponseEntity<>(new ResponseModel(false, "Some Preference Fields are empty",
+                            new ArrayList<>()), HttpStatus.BAD_REQUEST);
+                }
+            }
+            return new ResponseEntity<>(new ResponseModel(true, "success",
+                    preferenceModelList), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student Or Product not found",
+                new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+Get the details of selection criteria
+
+public ResponseEntity<?> getSchoolResearch(String studentId,String productId) {
+        StudentProduct studentProduct = getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            List<ParameterGroup> parameterGroupsList = parameterGroupRepository.findAll();
+            if (!parameterGroupsList.isEmpty()) {
+                List<ParameterGroupsModel> schoolResearchSelectionCriteriaList = new ArrayList<>();
+                for (ParameterGroup parameter : parameterGroupsList) {
+                    ParameterGroupsModel parameterGroupsModel = new ParameterGroupsModel();
+                    parameterGroupsModel.setParameterGroupName(parameter.getParameterGroupName());
+                    List<SchoolResearchSelectionCriteria> schoolResearchSelectionCriteria = schoolResearchSelectionCriteriaRepository.findByParameterGroupOrderByOrderNo(parameter);
+                    if (!schoolResearchSelectionCriteria.isEmpty()) {
+                        List<StudentCriteriaSelectModel> schoolResearchList = new ArrayList<>();
+                        for (SchoolResearchSelectionCriteria schoolResearchSelectionCriteria1 : schoolResearchSelectionCriteria) {
+                            if (schoolResearchSelectionCriteria1 != null) {
+                                StudentCriteriaSelectModel studentCriteriaSelectModel = new StudentCriteriaSelectModel();
+                                studentCriteriaSelectModel.setParameterName(schoolResearchSelectionCriteria1.getParameterName());
+                                studentCriteriaSelectModel.setId(schoolResearchSelectionCriteria1.getId());
+                                studentCriteriaSelectModel.setSource(schoolResearchSelectionCriteria1.getSource());
+                                studentCriteriaSelectModel.setOrderNo(schoolResearchSelectionCriteria1.getOrderNo());
+                                studentCriteriaSelectModel.setPointToConsider(schoolResearchSelectionCriteria1.getPointToConsider());
+                                StudentSchoolSelectionResearchCriteria studentSelectionCriteria = studentSchoolSelectionResearchCriteriaRepository.findBySchoolResearchSelectionCriteriaAndStudentProduct(schoolResearchSelectionCriteria1, studentProduct);
+                                if (studentSelectionCriteria != null) {
+                                    if (studentSelectionCriteria.getImportance() != null)
+                                        studentCriteriaSelectModel.setImportance(studentSelectionCriteria.getImportance());
+                                    if (studentSelectionCriteria.getNegotiability() != null)
+                                        studentCriteriaSelectModel.setNegotiability(studentSelectionCriteria.getNegotiability());
+                                    if (studentSelectionCriteria.getIdealPreference() != null)
+                                        studentCriteriaSelectModel.setIdealPreference(studentSelectionCriteria.getIdealPreference());
+                                }
+                                schoolResearchList.add(studentCriteriaSelectModel);
+                                parameterGroupsModel.setParameters(schoolResearchList);
+                            }
+                        }
+                        schoolResearchSelectionCriteriaList.add(parameterGroupsModel);
+                    }
+                }
+                return ResponseEntity.ok(new ResponseModel(true,
+                        "Received Successfully", schoolResearchSelectionCriteriaList));
+            }
+            return new ResponseEntity<>(new ResponseModel(false, "Parameter Groups List Is Empty",
+                    new ArrayList<>()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student or Product not found",
+                new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+Update the details of selected answers
+
+public ResponseEntity<?> saveSchoolFactsAndComments(String studentId, String productId, ResearchFilterSchoolModel filterSchoolModel) {
+        Optional<Student> student = studentRepository.findById(studentId);
+        if (student.isPresent()) {
+            Optional<Product> product = productRepository.findById(productId);
+            if (product.isPresent()) {
+                StudentProduct studentProduct = studentProductRepository.findByStudentAndProduct(student.get(), product.get());
+                if (studentProduct != null) {
+                    if (filterSchoolModel.getDegreeId() != null && filterSchoolModel.getFieldOfStudyId() != null && filterSchoolModel.getSchoolId() != null && filterSchoolModel.getProgramName() != null) {
+
+                        Optional<AspirationAreaOfSpecialization> areaOfSpecialization = Optional.of(new AspirationAreaOfSpecialization());
+                        Optional<AspirationDegree> degree = aspirationsDegreeRepository.findById(filterSchoolModel.getDegreeId());
+                        Optional<AspirationBranch> fieldOfStudy = aspirationsBranchRepository.findById(filterSchoolModel.getFieldOfStudyId());
+                        if (filterSchoolModel.getAreaOfSpecializationId() != null) {
+                            areaOfSpecialization = aspirationsAreaOfSpecializationRepository.findById(filterSchoolModel.getAreaOfSpecializationId());
+                        }
+                        SchoolResearchShortlistedSchools schoolResearchShortlistedSchools = new SchoolResearchShortlistedSchools();
+                        if (productReferService.checkProductWithFeature(product.get(),
+                                Feature.FeatureName.SCHOOL_RESEARCH_ACS_MBA_ACS_MIM.toString())) {
+                            Optional<BSchool> bSchool = bSchoolRepository.findById(filterSchoolModel.getSchoolId());
+                            if (bSchool.isPresent()) {
+                                BSProgram bsProgram = new BSProgram();
+                                BSProgramName bsProgramName = bsProgramNameRepository.findByName(filterSchoolModel.getProgramName());
+                                if (bsProgramName != null && degree.isPresent() && fieldOfStudy.isPresent() && areaOfSpecialization.isPresent()) {
+                                    bsProgram = bsProgramRepository.findByProgramAndBschoolAndDegreeAndFieldOfStudyAndAreaOfSpecialization(bsProgramName, bSchool.get(), degree.get(), fieldOfStudy.get(), areaOfSpecialization.get());
+                                } else if (bsProgramName != null && degree.isPresent() && fieldOfStudy.isPresent()) {
+                                    bsProgram = bsProgramRepository.findByProgramAndBschoolAndDegreeAndFieldOfStudy(bsProgramName, bSchool.get(), degree.get(), fieldOfStudy.get());
+                                }
+                                if (bsProgram != null) {
+                                    SchoolResearchShortlistedSchools shortlistedSchools = schoolResearchShortlistedSchoolsRepository.findByStudentProductAndBschoolAndBsProgram(studentProduct, bSchool.get(), bsProgram);
+                                    if (shortlistedSchools == null) {
+                                        schoolResearchShortlistedSchools = new SchoolResearchShortlistedSchools();
+                                    }
+                                    if (shortlistedSchools != null) {
+                                        schoolResearchShortlistedSchools = shortlistedSchools;
+                                    }
+                                    bSchool.ifPresent(schoolResearchShortlistedSchools::setBschool);
+                                    schoolResearchShortlistedSchools.setBsProgram(bsProgram);
+                                }
+                            }
+                        }
+                        if (productReferService.checkProductWithFeature(product.get(),
+                                Feature.FeatureName.SCHOOL_RESEARCH_ACS_MS.toString())) {
+                            Optional<GradSchool> gradSchool = gradSchoolRepository.findById(filterSchoolModel.getSchoolId());
+                            if (gradSchool.isPresent()) {
+                                GradSchoolProgram gradSchoolProgram = new GradSchoolProgram();
+                                GSProgramName gsProgramName = gsProgramNameRepository.findByName(filterSchoolModel.getProgramName());
+                                if (gsProgramName != null && degree.isPresent() && fieldOfStudy.isPresent() && areaOfSpecialization.isPresent()) {
+                                    gradSchoolProgram = gradSchoolProgramRepository.findByProgramAndGradSchoolAndDegreeAndFieldOfStudyAndAreaOfSpecialization(gsProgramName, gradSchool.get(), degree.get(), fieldOfStudy.get(), areaOfSpecialization.get());
+                                } else if (gsProgramName != null && degree.isPresent() && fieldOfStudy.isPresent()) {
+                                    gradSchoolProgram = gradSchoolProgramRepository.findByProgramAndGradSchoolAndDegreeAndFieldOfStudy(gsProgramName, gradSchool.get(), degree.get(), fieldOfStudy.get());
+                                }
+                                SchoolResearchShortlistedSchools shortlistedSchools = schoolResearchShortlistedSchoolsRepository.findByStudentProductAndGradSchoolAndGradSchoolProgram(studentProduct, gradSchool.get(), gradSchoolProgram);
+                                if (shortlistedSchools == null) {
+                                    schoolResearchShortlistedSchools = new SchoolResearchShortlistedSchools();
+                                }
+                                if (shortlistedSchools != null) {
+                                    schoolResearchShortlistedSchools = shortlistedSchools;
+                                }
+                                gradSchool.ifPresent(schoolResearchShortlistedSchools::setGradSchool);
+                                schoolResearchShortlistedSchools.setGradSchoolProgram(gradSchoolProgram);
+                            }
+                        }
+                        if(filterSchoolModel.getRegionId()!=null){
+                            Optional<Region> region = regionRepository.findById(filterSchoolModel.getRegionId());
+                            region.ifPresent(schoolResearchShortlistedSchools::setRegion);
+                        }
+                        degree.ifPresent(schoolResearchShortlistedSchools::setAspirationDegree);
+                        fieldOfStudy.ifPresent(schoolResearchShortlistedSchools::setAspirationBranch);
+                        areaOfSpecialization.ifPresent(schoolResearchShortlistedSchools::setAreaOfSpecialization);
+                        schoolResearchShortlistedSchools.setStudentProduct(studentProduct);
+                        schoolResearchShortlistedSchools.setStatus("Completed");
+                        SchoolResearchShortlistedSchools saveSchoolResearchShortList = schoolResearchShortlistedSchoolsRepository.save(schoolResearchShortlistedSchools);
+                        for (SchoolResearchFactsAndComments factsAndComment : filterSchoolModel.getFactsAndComments()) {
+                            Optional<SchoolResearchSelectionCriteria> schoolResearchSelectionCriteria = schoolResearchSelectionCriteriaRepository.findById(factsAndComment.getSchoolResearchSelectionCriteriaId());
+                            if (schoolResearchSelectionCriteria.isPresent()) {
+                                SchoolResearchFactsAndComments schoolResearchFactsAndComments = new SchoolResearchFactsAndComments();
+                                SchoolResearchFactsAndComments factsAndComments = schoolResearchFactsAndCommentsRepository.
+                                        findBySchoolResearchSelectionCriteriaAndSchoolResearchShortlistedSchools(schoolResearchSelectionCriteria.get(), schoolResearchShortlistedSchools);
+                                if (factsAndComments == null) {
+                                    schoolResearchFactsAndComments = new SchoolResearchFactsAndComments();
+                                }
+                                if (factsAndComments != null) {
+                                    schoolResearchFactsAndComments = factsAndComments;
+                                }
+                                schoolResearchFactsAndComments.setComments(factsAndComment.getComments());
+                                schoolResearchFactsAndComments.setFacts(factsAndComment.getFacts());
+                                schoolResearchFactsAndComments.setSchoolResearchShortlistedSchools(saveSchoolResearchShortList);
+                                schoolResearchSelectionCriteria.ifPresent(schoolResearchFactsAndComments::setSchoolResearchSelectionCriteria);
+                                schoolResearchFactsAndCommentsRepository.save(schoolResearchFactsAndComments);
+                            }
+                        }
+                        return new ResponseEntity<>(new ResponseModel(true, "Successfully Saved Facts and Comments",
+                                new JSONObject()), HttpStatus.OK);
+                    }
+                    return new ResponseEntity<>(new ResponseModel(false, "Some Fields are Empty",
+                            new JSONObject()), HttpStatus.BAD_REQUEST);
+                }
+                return new ResponseEntity<>(new ResponseModel(false, "Student   Product not found",
+                        new JSONObject()), HttpStatus.BAD_REQUEST);
+            }
+            return new ResponseEntity<>(new ResponseModel(false, "Product not found",
+                    new JSONObject()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student not found",
+                new JSONObject()), HttpStatus.BAD_REQUEST);
+    }
+    
+To generate decision matrix with the selected choices
+
+public ResponseEntity<?> getDecisionMatrix(String studentId, String productId) {
+        StudentProduct studentProduct = studentProductRepository.findByStudentIdAndProductId(studentId, productId);
+        if (studentProduct != null) {
+            QuadrantsModel quadrantsList = new QuadrantsModel();
+            List<String> quadrantList1 = new ArrayList<>();
+            List<String> quadrantList2 = new ArrayList<>();
+            List<String> quadrantList3 = new ArrayList<>();
+            List<String> quadrantList4 = new ArrayList<>();
+            List<StudentSchoolSelectionResearchCriteria> studentResearch = studentSchoolSelectionResearchCriteriaRepository.findByStudentProduct(studentProduct);
+            if (!studentResearch.isEmpty()) {
+                for (StudentSchoolSelectionResearchCriteria studentSchoolSelectionResearchCriteria : studentResearch) {
+                    if (studentSchoolSelectionResearchCriteria.getImportance() != null && studentSchoolSelectionResearchCriteria.getNegotiability() != null) {
+                        if (studentSchoolSelectionResearchCriteria.getImportance().equals(true) && studentSchoolSelectionResearchCriteria.getNegotiability().equals(false)) {
+                            quadrantList1.add(studentSchoolSelectionResearchCriteria.getSchoolResearchSelectionCriteria().getParameterName());
+                            quadrantsList.setQuadrant1(quadrantList1);
+                        } else if (studentSchoolSelectionResearchCriteria.getImportance().equals(false) && studentSchoolSelectionResearchCriteria.getNegotiability().equals(false)) {
+                            quadrantList2.add(studentSchoolSelectionResearchCriteria.getSchoolResearchSelectionCriteria().getParameterName());
+                            quadrantsList.setQuadrant2(quadrantList2);
+                        } else if (studentSchoolSelectionResearchCriteria.getImportance().equals(false) && studentSchoolSelectionResearchCriteria.getNegotiability().equals(true)) {
+                            quadrantList3.add(studentSchoolSelectionResearchCriteria.getSchoolResearchSelectionCriteria().getParameterName());
+                            quadrantsList.setQuadrant3(quadrantList3);
+                        } else if (studentSchoolSelectionResearchCriteria.getImportance().equals(true) && studentSchoolSelectionResearchCriteria.getNegotiability().equals(true)) {
+                            quadrantList4.add(studentSchoolSelectionResearchCriteria.getSchoolResearchSelectionCriteria().getParameterName());
+                            quadrantsList.setQuadrant4(quadrantList4);
+                        }
+                    }
+                }
+                return ResponseEntity.ok(new ResponseModel(true, "Saved Successfully", quadrantsList));
+            }
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student Product not found",
+                new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+To generate the preference card
+
+public ResponseEntity<?> saveSubmitPreferenceCards(String studentId, String productId, List<IdAndNameModel> preferenceIdList,String token) {
+        StudentProduct studentProduct = getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            if (preferenceIdList.size() == 0) {
+                return ResponseEntity.ok(new ResponseModel(false, "You must add atleast 1 preference"
+                        , new JSONObject()));
+            } else if (preferenceIdList.size() <= 3) {
+                submitPreferenceMailForOps(studentProduct, token);
+                auditTrialService.setAuditTrialEntry(studentId, productId, "Preference Mail for Ops", studentProduct.getProduct().getOpsEmailId());
+                return ResponseEntity.ok(new ResponseModel(true, "Successfully Submitted"
+                        , new JSONObject()));
+            } else
+                return new ResponseEntity<>(new ResponseModel(false, "You can only have 3 preferences in place"
+                        , new JSONObject()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student Product not Found"
+                , new JSONObject()), HttpStatus.BAD_REQUEST);
+    }
+    
+To shorlist the schools
+
+public ResponseEntity<?> saveShortlistedSchoolFields(String studentId, String productId, Boolean status) {
+        StudentProduct studentProduct = getStudentProductByStudentAndProduct(studentId,productId);
+        if(studentProduct!=null){
+            if(status!=null){
+                studentProduct.setShortlistedStatus(status);
+                studentProductRepository.save(studentProduct);
+                return new ResponseEntity<>(new ResponseModel(true, "Saved Successfully",
+                        new JSONObject()), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new ResponseModel(false, "Status not found",
+                    new JSONObject()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "Student Product not found",
+                new JSONObject()), HttpStatus.BAD_REQUEST);
+    }
+    
+To submit the details of recommenders
+
+public ResponseEntity<?> submitRecommender(String studentId, String productId,List<RecommendersModel> recommendersModels,String token) {
+        StudentProduct studentProduct= studentProductRepository.findByStudentIdAndProductId(studentId,productId);
+        if(studentProduct!=null){
+            int count=recommendersModels.size();
+            if(count<=5) {
+                for (RecommendersModel recommenders : recommendersModels) {
+                    Recommenders recommendersOptional = recommenderRepository.findByIdAndStudentProduct(recommenders.getId(), studentProduct);
+                    if(recommendersOptional!=null) {
+                        System.out.println(recommendersOptional.getId());
+                        recommendersOptional.setIsSubmitted(true);
+                        recommenderRepository.save(recommendersOptional);
+                    }
+                }
+                recommenderOpsMail(studentProduct,token);
+                return new ResponseEntity(new ResponseModel<>(true, "Submit Recommenders", new Object()), HttpStatus.OK);
+            }
+            else
+                return new ResponseEntity(new ResponseModel<>(false, "Recommenders should not exceed the limit 5"), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity(new ResponseModel<>(false,"StudentProduct not found"), HttpStatus.BAD_REQUEST);
+    }
+    
+public void recommenderOpsMail(StudentProduct studentProduct,String token){
+        EmailRequestModel emailRequestModel=new EmailRequestModel();
+        emailRequestModel.setTo(studentProduct.getProduct().getOpsEmailId());
+        String studentName = " ";
+        if (studentProduct.getStudent().getFullName() != null) {
+            studentName = studentProduct.getStudent().getFullName();
+        } else if (studentProduct.getStudent().getFirstName() != null && studentProduct.getStudent().getLastName() != null) {
+            studentName = studentProduct.getStudent().getFirstName()+" "+studentProduct.getStudent().getLastName();
+        }
+        String clsId ="" ;
+        if (studentProduct.getStudent().getStudentID()!=null) {
+            clsId=studentProduct.getStudent().getStudentID();
+        }
+        emailRequestModel.setSubject(studentName+", Information of Recommender");
+        emailRequestModel.setBody("\nDear Mentor,<br>"+"<br>I have filled and submitted the Recommender Request Form (RRF) as a part of the application process, for your perusal.<br>"+
+        "<br>Kindly review the details and select the suitable recommenders for the next steps.<br>"+"<br>Regards,"+"<br>"+studentName+" ("+clsId+")");
+        MailType mailType=mailTypeRepository.findByName("Recommender OPS Mail");
+        AuditTrial auditTrial=auditTrialRepository.findByMailTypeAndStudentAndProduct(mailType,studentProduct.getStudent(),studentProduct.getProduct());
+        System.out.println(auditTrial);
+        //to find whether the mail is already sent to student under this mailtype
+        if(auditTrial==null){
+            smtpMailService.sendEmail(emailRequestModel, token);
+            auditTrialService.setAuditTrialEntry(studentProduct.getStudent().getId(),studentProduct.getProduct().getId(),"Recommender OPS Mail",studentProduct.getProduct().getOpsEmailId());
+        }
+        else {
+            new ResponseEntity<>(new ResponseModel(false, "mail already sent", new JSONObject()), HttpStatus.BAD_REQUEST);
+            return;
+        }
+        new ResponseEntity<>(new ResponseModel(true, "mail sent successfully", new JSONObject()), HttpStatus.OK);
+    }
+    
+To update the status of recommenders
+
+public ResponseEntity<?> recommenderStatus(String studentId, String productId, List<RecommendersModel> recommendersModels,String token) {
+        StudentProduct studentProduct=studentProductRepository.findByStudentIdAndProductId(studentId,productId);
+        if(studentProduct!=null) {
+            int i = 0;
+            List<Recommenders> recommenderList =new ArrayList<>();
+            for (RecommendersModel recommenders : recommendersModels) {
+                Recommenders recommenderType = recommenderRepository.findByIdAndStudentProduct(recommenders.getId(), studentProduct);
+                if (recommenderType != null) {
+                    recommenderType.setId(recommenders.getId());
+                    recommenderType.setIsRecommended(recommenders.getIsRecommended());
+                    recommenderList.add(recommenderType);
+                }
+                if (recommenders.getIsRecommended().equals(true)) {
+                    i++;
+                }
+            }
+            if (i <= 3) {
+                recommenderRepository.saveAll(recommenderList);
+                recommenderMail(studentProduct, token);
+                return new ResponseEntity(new ResponseModel<>(true, "Submitted successfully", new Object()), HttpStatus.OK);
+            }
+            else {
+                return new ResponseEntity(new ResponseModel<>(false, "Select Maximum of 3 recommeders only "), HttpStatus.BAD_REQUEST);
+            }
+        }
+        return new ResponseEntity(new ResponseModel<>(false,"StudentProduct not found"), HttpStatus.BAD_REQUEST);
+    }
+    
+public void recommenderMail(StudentProduct studentProduct, String token){
+        EmailRequestModel emailRequestModel=new EmailRequestModel();
+        emailRequestModel.setTo(studentProduct.getStudent().getEmailId());
+        emailRequestModel.setSubject(" Approved Recommenders:");
+        emailRequestModel.setBody("\nDear "+studentProduct.getStudent().getFirstName()+" "+studentProduct.getStudent().getLastName()+",<br><br>"
+                +"Our mentors have reviewed the recommender details submitted by you and have selected the most suitable ones for your application. " +
+                "Kindly log on to the portal and take a look at the same.<br>"+ "<br>"+"Regards,"+"<br>"+"ACS team");
+        System.out.println(emailRequestModel);
+        MailType mailType=mailTypeRepository.findByName("Recommender Mail");
+        AuditTrial auditTrial=auditTrialRepository.findByMailTypeAndStudentAndProduct(mailType,studentProduct.getStudent(),studentProduct.getProduct());
+        System.out.println(auditTrial);
+        //to find whether the mail is already sent to student under this mailtype
+        if(auditTrial==null){
+            smtpMailService.sendEmail(emailRequestModel, token);
+            auditTrialService.setAuditTrialEntry(studentProduct.getStudent().getId(),studentProduct.getProduct().getId(),"Recommender Mail",studentProduct.getStudent().getEmailId());
+        }
+        else {
+            new ResponseEntity<>(new ResponseModel(false, "mail already sent", new JSONObject()), HttpStatus.BAD_REQUEST);
+            return;
+        }
+        new ResponseEntity<>(new ResponseModel(true, "mail sent successfully", new JSONObject()), HttpStatus.OK);
+    }
+
+To create or update the recommender details 
+
+public ResponseEntity<?> saveOrUpdatesRecommenderDetails(RecommenderDetailsModel recommenderDetails, String studentId, String productId) {
+        if(studentId!=null && productId!=null){
+            // Get the studentProduct from the getStudentProductByStudentAndProduct method of the studentPgaService
+            StudentProduct studentProduct =studentPgaService.getStudentProductByStudentAndProduct(studentId,productId);
+            if(studentProduct!=null){
+                if(recommenderDetails!=null){
+                    //Check whether the respective recommender id and studentProduct is present in the recommender table
+                    // If present means update the table
+                    // If not present means create new row and save the recommender details in the recommender table
+                    Recommenders recommender=recommenderRepository.findByIdAndStudentProduct(recommenderDetails.getId(),studentProduct);
+                    Recommenders recommenderInfo=null;
+                    if(recommender==null){
+                        recommenderInfo=new Recommenders();
+                    }
+                    if(recommender!=null){
+                        recommenderInfo=recommenderRepository.findByIdAndStudentProduct(recommenderDetails.getId(),studentProduct);
+                    }
+                    recommenderInfo.setStudentProduct(studentProduct);
+                    if(recommenderDetails.getRecommenderName()!=null){
+                        recommenderInfo.setRecommenderName(recommenderDetails.getRecommenderName());
+                    }
+                    if(recommenderDetails.getDesignation()!=null){
+                        recommenderInfo.setDesignation(recommenderDetails.getDesignation());
+                    }
+                    if(recommenderDetails.getRelationship()!=null){
+                        recommenderInfo.setRelationship(recommenderDetails.getRelationship());
+                    }
+                    if(recommenderDetails.getEmail()!=null){
+                        recommenderInfo.setEmail(recommenderDetails.getEmail());
+                    }
+                    if(recommenderDetails.getMobileNumber()!=null){
+                        recommenderInfo.setMobileNumber(recommenderDetails.getMobileNumber());
+                    }
+                    if(recommenderDetails.getHowLongHaveYouKnowTheRecommender()!=null){
+                        recommenderInfo.setHowLongHaveYouKnowTheRecommender(recommenderDetails.getHowLongHaveYouKnowTheRecommender());
+                    }
+                    if(recommenderDetails.getTitle()!=null){
+                        recommenderInfo.setTitle(recommenderDetails.getTitle());
+                    }
+                    if(recommenderDetails.getOrderNo()!=null){
+                        recommenderInfo.setOrderNo(recommenderDetails.getOrderNo());
+                    }
+                    recommenderRepository.save(recommenderInfo);
+                    return new ResponseEntity<>(new ResponseModel(true, "RecommenderDetails", recommenderInfo),
+                         HttpStatus.OK);
+                }
+            }
+            return new ResponseEntity<>(new ResponseModel(false, "Student or Product not found", new JSONObject()),
+                    HttpStatus.EXPECTATION_FAILED);
+        }
+        return new ResponseEntity<>(new ResponseModel(false, "StudentId or ProductId not found", new JSONObject()),
+                HttpStatus.EXPECTATION_FAILED);
+    }
+    
+To upload the file
+
+public  ResponseEntity<?> uploadRecommenderFile(MultipartFile file, String studentId, String productId, String recommenderId) {
+        File conFile = null;
+        try {
+            StudentProduct studentProduct =studentPgaService.getStudentProductByStudentAndProduct(studentId,productId);
+            if(studentProduct!=null) {
+                String clsId = studentRepository.findClsId(studentProduct.getStudent().getId());
+                if(clsId!=null) {
+                    Recommenders recommenderDetail = recommenderRepository.findByIdAndStudentProduct(recommenderId,studentProduct);
+                    conFile = convertRecommenderFile(file,recommenderDetail);
+                    if (conFile != null) {
+                        String response = fileUploadAwsServices.uploadRecommenderFile(clsId,recommenderDetail,conFile);
+                        // For update the documentName in the Db
+                        if (!response.equals("Cannot File Upload")) {
+                            if (recommenderDetail.getDocument() != null) {
+                                recommenderDetail.setDocument(conFile.getName());
+                                recommenderDetail.setUploadedDate(ZonedDateTime.now());
+                                //To find the user with the given token
+                                UserRole userRole = wallService.findUser(token);
+                                if (userRole != null) {
+                                    recommenderDetail.setUploadedBy(userRole.getUsername());
+                                }
+                                Optional<Student> student=studentRepository.findById(studentId);
+                                if(student.isPresent()) {
+                                    String FirstLastName = student.get().getFirstName() +" "+student.get().getLastName();
+                                    recommenderDetail.setUploadedBy(FirstLastName);
+                                }
+                                if(recommenderDetail.getRecommenderName()!=null &&  recommenderDetail.getDocument()!=null) {
+                                    String[] split =recommenderDetail.getDocument().split("\\.");
+                                    for(String fileName:split) {
+                                        recommenderDetail.setFileName("Recommender Request Form - " + recommenderDetail.getRecommenderName() + "." + String.join("", fileName));
+                                        recommenderDetail.setDocument(recommenderDetail.getRecommenderName() + "." + String.join("", fileName));
+                                    }
+                                }
+                                recommenderRepository.save(recommenderDetail);
+                            } else {
+
+                                    recommenderDetail.setDocument(conFile.getName());
+                                    recommenderDetail.setUploadedDate(ZonedDateTime.now());
+                                    Optional<Student> student = studentRepository.findById(studentId);
+                                    if (student.isPresent()) {
+                                        String FirstLastName = student.get().getFirstName() + student.get().getLastName();
+                                        recommenderDetail.setUploadedBy(FirstLastName);
+                                    }
+                                    recommenderRepository.save(recommenderDetail);
+                            }
+                        }
+                    }
+                }
+                return new ResponseEntity<>(new ResponseModel(true, "Uploaded the File Successfully", conFile.getName()),
+                        HttpStatus.OK);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+    
+To get the details of recommenders
+    
+public ResponseEntity<ResponseModel> getRecommenderDetailsList(String studentId, String productId) {
+        StudentProduct studentProduct = studentPgaService.getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            List<Recommenders> recommenderList = recommenderRepository.findByStudentProductOrderByOrderNo(studentProduct);
+            if(!recommenderList.isEmpty()){
+                int i=1;
+                List<RecommenderDetailsModel> recommenderLists = new ArrayList<>();
+                for (Recommenders recommenders:recommenderList){
+                    RecommenderDetailsModel recommenderDetailsModel = getRecommenderDetails(recommenders);
+                    recommenderDetailsModel.setRecommender("Recommender " +i);
+                    recommenderLists.add(recommenderDetailsModel);
+                    i++;
+                }
+                return new ResponseEntity<>(new ResponseModel(true,
+                        "Recommenders List", recommenderLists), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new ResponseModel(false,
+                    "Recommenders List is Empty", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false,
+                "Student Product not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+To get one recommender from the list
+
+public ResponseEntity<ResponseModel> getRecommenderById(String studentId, String productId, String recommenderId) {
+        StudentProduct studentProduct = studentPgaService.getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            Optional<Recommenders> recommender = recommenderRepository.findById(recommenderId);
+            if(recommender.isPresent()){
+                RecommenderDetailsModel recommenderDetailsModel = getRecommenderDetails(recommender.get());
+                return new ResponseEntity<>(new ResponseModel(true,
+                        "Recommenders List",recommenderDetailsModel), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new ResponseModel(false,
+                    "Recommenders not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false,
+                "Student Product not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+To download the recommender request form 
+
+public ResponseEntity<?> downloadRecommenderRequestForm(String studentId, String productId, String recommenderId,String token) {
+        String clsId=studentRepository.findClsId(studentId);
+        StudentProduct studentProduct=studentPgaService.getStudentProductByStudentAndProduct(studentId,productId);
+        if(studentProduct!=null){
+            //find query to get the recommender detail from their respective recommenderId and studentProduct
+            Recommenders recommenderDetail=recommenderRepository.findByIdAndStudentProduct(recommenderId,studentProduct);
+            if(recommenderDetail!=null){
+                recommenderDetail.setDownloadedDate(ZonedDateTime.now());
+                //To find the user with the given token
+                UserRole userRole = wallService.findUser(token);
+                if (userRole != null) {
+                    recommenderDetail.setUploadedBy(userRole.getUsername());
+                }
+                recommenderRepository.save(recommenderDetail);
+                System.out.println(clsId + "/" + recommenderDetail.getRecommenderName() + "/" + recommenderDetail.getDocument());
+                return fileUploadAwsServices.downloadFileWithDocumentName(clsId + "/" + recommenderDetail.getRecommenderName() + "/" + recommenderDetail.getDocument(),recommenderDetail.getDocument());
+            }else {
+                return new ResponseEntity<>(new ResponseModel(true,
+                        "Recommenders are not present", new JSONObject()), HttpStatus.OK);
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student Not Found or Document Not Found");
+    }
+    
+To delete the Recommender Details with uploaded request form
+
+public ResponseEntity<ResponseModel> deleteRecommenderById(String studentId, String productId, String recommenderId) {
+        StudentProduct studentProduct = studentPgaService.getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            Optional<Recommenders> recommender = recommenderRepository.findById(recommenderId);
+            if(recommender.isPresent()) {
+                if (recommender.get().getDocument() != null) {
+                    String clsId = studentRepository.findClsId(studentProduct.getStudent().getId());
+                    if (clsId != null) {
+                        fileUploadAwsServices.deleteRecommenderFile(clsId, recommender.get());
+                    }
+                    recommenderRepository.delete(recommender.get());
+                    return new ResponseEntity<>(new ResponseModel(true,
+                            "Recommenders Deleted Successfully", new ArrayList<>()), HttpStatus.OK);
+                }
+            }
+            return new ResponseEntity<>(new ResponseModel(false,
+                    "Recommenders not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false,
+                "Student Product not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+    
+To get Recommender Guide or Recommender Request Form Link
+
+public ResponseEntity<ResponseModel> getRecommenderSelectorRequestFormOrGuide(String studentId, String productId, String type) {
+        StudentProduct studentProduct = studentPgaService.getStudentProductByStudentAndProduct(studentId, productId);
+        if (studentProduct != null) {
+            if(type!=null){
+                if(type.equalsIgnoreCase("Form")){
+                    List<RecommenderLinkModel> requestForm = getRecommenderSelectorRequestForm(studentProduct);
+                    return new ResponseEntity<>(new ResponseModel(true,
+                            "Recommender Request Form",requestForm), HttpStatus.OK);
+
+                }else if(type.equalsIgnoreCase("Guide")){
+                    List<RecommenderLinkModel> requestGuide = getRecommenderSelectorGuide(studentProduct);
+                    return new ResponseEntity<>(new ResponseModel(true,
+                            "Recommender Request Form / Recommender Guides",requestGuide), HttpStatus.OK);
+                }
+            }
+            return new ResponseEntity<>(new ResponseModel(false,
+                    "Type not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(new ResponseModel(false,
+                "Student Product not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+
+    }
+    
+To give status for whether the recommender is submitted by student or not
+
+public ResponseEntity<ResponseModel> getStatusForRecommenders(String studentId, String productId) {
+        StudentProduct studentProduct = studentPgaService.getStudentProductByStudentAndProduct(studentId , productId);
+        if(studentProduct!=null){
+            StatusModel status = new StatusModel();
+            List<Recommenders> recommendersList = recommenderRepository.findByStudentProduct(studentProduct);
+            if(!recommendersList.isEmpty()){
+                int i=0;
+              for (Recommenders recommenders : recommendersList){
+                  if(recommenders.getIsSubmitted().equals(true)){
+                      i++;
+                  }
+              }
+              if(recommendersList.size() == i){
+                  status.setStatus(true);
+                  return new ResponseEntity<>(new ResponseModel(true,
+                          "Recommender Submitted", status), HttpStatus.OK);
+              }else{
+                  return new ResponseEntity<>(new ResponseModel(true,
+                          "Recommender is not Submitted", status), HttpStatus.OK);
+              }
+            }
+            return new ResponseEntity<>(new ResponseModel(true,
+                    "Recommender List is Empty", status), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(new ResponseModel(false,
+                "Student Product not found", new ArrayList<>()), HttpStatus.BAD_REQUEST);
+    }
+
+Whatsapp notification for students to complete the stage
+
+public String sendObCompletionWhatsappMessageForStudents(Boolean isSend) throws ParseException {
+        System.out.println("CRON JOB Started");
+        if (isSend != null && isSend.equals(true)) {
+            Date currentDate = new Date();
+            SimpleDateFormat firstSimpleFormatter = new SimpleDateFormat("yyyy-MM-dd");
+            String firstDate = firstSimpleFormatter.format(currentDate);
+            String fromDate = firstDate + " 00:00:00";
+            SimpleDateFormat firstDateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date firstTimeOfPreviousDate = firstDateFormatter.parse(fromDate);
+            System.out.println(firstTimeOfPreviousDate);
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+            String strDate = formatter.format(currentDate);
+            String lastDate = strDate + " 23:59:59";
+
+            SimpleDateFormat lastDateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date lastTimeOfPreviousDate = lastDateFormatter.parse(lastDate);
+            System.out.println(lastTimeOfPreviousDate);
+            List<StudentProduct> studentProduct = studentProductRepository.findByAllocatedAtBetween(firstTimeOfPreviousDate, lastTimeOfPreviousDate);
+            System.out.println("List Of students on this date is " + studentProduct.size());
+            if (!studentProduct.isEmpty()) {
+                for (StudentProduct studentProductDetail : studentProduct) {
+                    if (studentProductDetail.getStudentObComplete() == null) {
+                        System.out.println("set the student for setting up the  payload for whatsapp services");
+                        System.out.println(studentProductDetail.getStudent().getFirstName());
+                        whatsappService.saveWhatsappMsgDetailsForStudentObComplete(studentProductDetail);
+                    } else {
+                        System.out.println(studentProductDetail.getStudent().getFirstName() + " has marked as ObComplete");
+                    }
+                }
+                return "CRON JOB COMPLETED";
+            }
+        } else {
+            Date currentDate = new Date();
+            LocalDate convDate = currentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate localDate = convDate.minusDays(10);
+
+            Date firstTimeOfPreviousDate = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+            System.out.println(firstTimeOfPreviousDate);
+
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+            String strDate = formatter.format(firstTimeOfPreviousDate);
+            String lastDate = strDate + " 23:59:59";
+
+            SimpleDateFormat lastDateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date lastTimeOfPreviousDate = lastDateFormatter.parse(lastDate);
+            System.out.println(lastTimeOfPreviousDate);
+
+            List<StudentProduct> studentProduct = studentProductRepository.findByAllocatedAtBetween(firstTimeOfPreviousDate, lastTimeOfPreviousDate);
+            System.out.println("List Of students on this date is " + studentProduct.size());
+            if (!studentProduct.isEmpty()) {
+                for (StudentProduct studentProductDetail : studentProduct) {
+                    if (studentProductDetail.getStudentObComplete() == null) {
+                        System.out.println("set the student for setting up the  payload for whatsapp services");
+                        System.out.println(studentProductDetail.getStudent().getFirstName());
+                        whatsappService.saveWhatsappMsgDetailsForStudentObComplete(studentProductDetail);
+                    } else {
+                        System.out.println(studentProductDetail.getStudent().getFirstName() + " has marked as ObComplete");
+                    }
+                }
+                return "CRON JOB COMPLETED";
+            }
+        }
+        return null;
+    }
+    
+public void saveWhatsappMsgDetailsForStudentObComplete(StudentProduct studentProduct) {
+        List<String> bodyDataList=new ArrayList<>();
+        WhatsappMsgModel whatsappMsgModel=new WhatsappMsgModel();
+        if(studentProduct.getStudent().getFirstName()!=null) {
+            bodyDataList.add(studentProduct.getStudent().getFirstName());
+        }else{
+            bodyDataList.add("There");
+        }
+        bodyDataList.add("*Note:* We Don't monitor this inbox, in case of any queries, reach out to product specific support channels");
+        whatsappMsgModel.setBodyData(bodyDataList);
+        List<String> interactiveData=new ArrayList<>();
+        whatsappMsgModel.setInteractiveData(interactiveData);
+        List<String> headerData=new ArrayList<>();
+        headerData.add("https://assets.thecareerlabs.com/elev8/Group%204%20%282%29.png");
+        whatsappMsgModel.setHeaderData(headerData);
+        whatsappMsgModel.setWbaPhoneId(WBAPhoneID);
+        whatsappMsgModel.setWbaAccountId(WBAAccountId);
+        String templateId="652486756081090";
+        whatsappMsgModel.setTemplateId(templateId);
+        if(studentProduct.getStudent().getPhoneNumber()!=null) {
+            whatsappMsgModel.setClientPhone(studentProduct.getStudent().getPhoneNumber());
+        }
+        whatsappMsgModel.setCohortId("UF_OBIncomplete_Message");
+        whatsappMsgModel.setOrigin(origin);
+        whatsappMsgModel.setSandbox(sandBox);
+         String pattern = "yyyy-MM-dd";
+         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+         String date = simpleDateFormat.format(new Date());
+         System.out.println(date);
+         whatsappMsgModel.setStart(date);
+         whatsappMsgModel.setEnd(date);
+        //whatsappMessageService
+        sendWhatsAppMessageForWelcomeUP(whatsappMsgModel,studentProduct.getStudent(), studentProduct.getProduct());
+        System.out.println("successFully sent for whatsapp service");
+    }
+    
+Whatsapp notification for students to fill the details
+
+public String sendObFillUpWhatsappMessageForStudents(Boolean isSend) throws ParseException {
+        String message="";
+        LocalDate startDate;
+        if(isSend!=null && isSend.equals(true)){
+            startDate=LocalDate.now();
+        }else {
+            startDate = LocalDate.now().minusDays(1);
+        }
+        List<StudentLogin> studentLoginList=studentLoginRepository.findByLoginDate(startDate);
+        for(StudentLogin studentLogin:studentLoginList) {
+            List<StudentSection> studentSectionList = studentSectionRepository.findByStudentId(studentLogin.getStudent().getId());
+            if(!studentSectionList.isEmpty()) {
+                for (StudentSection studentSections : studentSectionList) {
+                    if (studentSections!=null) {
+                        message = "Onboarding details are filled";
+                    }
+                }
+            }
+            else {
+                whatsappService.saveWhatsappMsgDetails(studentLogin.getStudent());
+                message = "Message send";
+            }
+        }
+        return message;
+    }
+    
+Mail notification for students to activate the product
+
+public String sendObActivationMail(String token, String studentId) throws ParseException{
+        Date currentDate = new Date();
+        LocalDate date=currentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        if(studentId!=null){
+            defaultMailNotification(date,token,studentId);
+            return "Successfully send";
+        }else {
+            LocalDate firstLocalDate = date.minusDays(4);
+            LocalDate secondLocalDate = date.minusDays(7);
+            LocalDate thirdLocalDate = date.minusDays(10);
+            if (firstLocalDate != null) {
+                firstNotification(firstLocalDate, token);
+            }
+            if (secondLocalDate != null) {
+                secondNotification(secondLocalDate, token);
+            }
+            if (thirdLocalDate != null) {
+                thirdNotification(thirdLocalDate, token);
+            }
+            return "Successfully send";
+        }
+    }
+    
+private String defaultMailNotification(LocalDate date, String token, String studentId) throws ParseException {
+        String message="";
+        Date startDate=Date.from(date.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+        SimpleDateFormat secondSimpleFormatter = new SimpleDateFormat("yyyy-MM-dd");
+        String secondDate = secondSimpleFormatter.format(startDate);
+        String sDate = secondDate + " 23:59:59";
+        SimpleDateFormat firstDateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date firstTimeOfPreviousDate = firstDateFormatter.parse(sDate);
+        SimpleDateFormat firstSimpleFormatter = new SimpleDateFormat("yyyy-MM-dd");
+        String firstDate = firstSimpleFormatter.format(startDate);
+        String fromDate = firstDate + " 00:00:00";
+        SimpleDateFormat secondDateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date secondTimeOfPreviousDate = secondDateFormatter.parse(fromDate);
+        StudentProduct studentProduct=studentProductRepository.findByAllocatedAtBetweenAndStudentId(secondTimeOfPreviousDate,firstTimeOfPreviousDate,studentId);
+        System.out.println(secondTimeOfPreviousDate);
+        System.out.println(firstTimeOfPreviousDate);
+        if(studentProduct!=null) {
+            StudentLogin studentLogin = studentLoginRepository.findByStudentId(studentProduct.getStudent().getId());
+            if (studentLogin!=null && studentLogin.getLoginDate() != null) {
+                message = "Onboarding details are filled";
+            } else {
+                mailNotification(studentProduct, token);
+                message="Notification mail send";
+            }
+        }
+        return message;
+    }
+    
+private void mailNotification(StudentProduct studentProduct,String token) {
+        EmailRequestModel emailRequestModel=new EmailRequestModel();
+        emailRequestModel.setTo(studentProduct.getStudent().getEmailId());
+        String studentName = " ";
+        if (studentProduct.getStudent().getFullName() != null) {
+            studentName = studentProduct.getStudent().getFullName();
+        } else if (studentProduct.getStudent().getFirstName() != null && studentProduct.getStudent().getLastName() != null) {
+            studentName = studentProduct.getStudent().getFirstName()+" "+studentProduct.getStudent().getLastName();
+        }
+        emailRequestModel.setSubject("REMINDER: Complete your Login steps to start Onboarding");
+        emailRequestModel.setBody("Hello "+studentName+",<br><br>"+"High five for getting activated on your product.<br><br>So don’t stop now! " +
+                "We noticed that you haven’t completed login yet to move to the Onboarding Process.<br><br>We request you to " +
+                "login to the portal and update your details further to connect with us for an Onboarding call.<br><br>"+
+                "Let’s power through the setup guide, so you can move on to the next step.<br>" +
+                "<br>All the best,<br>Team CareerLabs");
+        MailType mailType=mailTypeRepository.findByName("OB Activation Mail");
+        List<AuditTrial> auditTrial=auditTrialRepository.findByMailTypeAndProductAndStudent(mailType,studentProduct.getProduct(),studentProduct.getStudent());
+        //To find whether the mail is already sent to student under this mailtype
+        if(auditTrial==null || auditTrial.isEmpty() || auditTrial.size()<3){
+            smtpMailService.sendEmail(emailRequestModel, token);
+            auditTrialService.setAuditTrialDetailsEntryForMailRemainder(studentProduct.getStudent().getId(),studentProduct.getProduct().getId(),"OB Activation Mail",studentProduct.getStudent().getEmailId());
+        }
+    }
+    
+Mail notification for students to activate the product
+
+public String sendObCallMail(String token, String studentId) {
+        LocalDate localDate=LocalDate.now();
+        if(studentId!=null ){
+            defaultNotification(localDate,token,studentId);
+            return "Successfully send";
+        }else {
+            LocalDate firstDate = localDate.minusDays(4);
+            LocalDate secondDate = localDate.minusDays(7);
+            LocalDate thirdDate = localDate.minusDays(10);
+            if (firstDate != null) {
+                firstMailNotification(firstDate, token);
+            }
+            if (secondDate != null) {
+                secondMailNotification(secondDate, token);
+            }
+            if (thirdDate != null) {
+                thirdMailNotification(thirdDate, token);
+            }
+            return "Successfully send";
+        }
+    }
+    
+private String defaultNotification(LocalDate localDate, String token,String studentId) {
+        String message = "";
+        List<StudentLogin> studentLoginList = studentLoginRepository.findByLoginDateAndStudentId(localDate,studentId);
+        for (StudentLogin studentLogin : studentLoginList) {
+            List<StudentProduct> studentProductList = studentProductRepository.findByStudentId(studentLogin.getStudent().getId());
+            for (StudentProduct studentProduct : studentProductList) {
+                MasterReport masterReport = masterReportRepository.findByStudentIdAndProductId(studentProduct.getStudent().getId(), studentProduct.getProduct().getId());
+                if (masterReport != null && masterReport.getObcallScheduleDate() != null) {
+                    message = "OB Call Scheduled";
+                } else {
+                    OBCallMailNotification(studentProduct, token);
+                    message = "Notification mail send";
+                }
+            }
+        }
+        return message;
+    }
+    
+private void OBCallMailNotification(StudentProduct studentProduct, String token) {
+        BccEmailRequestModel emailRequestModel=new BccEmailRequestModel();
+        emailRequestModel.setTo(studentProduct.getStudent().getEmailId());
+        emailRequestModel.setBcc("loveleena.swansi@thecareerlabs.com");
+        String studentName = " ";
+        if (studentProduct.getStudent().getFullName() != null) {
+            studentName = studentProduct.getStudent().getFullName();
+        } else if (studentProduct.getStudent().getFirstName() != null && studentProduct.getStudent().getLastName() != null) {
+            studentName = studentProduct.getStudent().getFirstName()+" "+studentProduct.getStudent().getLastName();
+        }
+        emailRequestModel.setSubject("Login Today- Accelerate Your Career");
+        emailRequestModel.setBody("Hello "+studentName+",<br><br>"+"Thanks for considering CareerLabs for your career needs, " +
+                "as well as sharing the goals and aspirations.<br><br>" + "If you would like to learn how other students are dealing with challenges like yours, " +
+                "We would be happy to schedule a call & discuss the steps further.<br><br>" + "Please complete your Onboarding by logging into the portal. " +
+                "Use the link below to directly login & lets move ahead in the journey.<br><br>"+"https://ufportal.thecareerlabs.com/<br><br>"+
+                "All the best,<br>Team CareerLabs");
+        MailType mailType=mailTypeRepository.findByName("OB Call Mail");
+        List<AuditTrial> auditTrial=auditTrialRepository.findByMailTypeAndProductAndStudent(mailType,studentProduct.getProduct(),studentProduct.getStudent());
+        //To find whether the mail is already sent to student under this mailtype
+        if(auditTrial==null || auditTrial.isEmpty() || auditTrial.size()<3){
+            smtpMailService.sendEmailWithBcc(emailRequestModel, token);
+            auditTrialService.setAuditTrialDetailsEntryForMailRemainder(studentProduct.getStudent().getId(),studentProduct.getProduct().getId(),"OB Call Mail",studentProduct.getStudent().getEmailId());
+        }
+    }
+
+    
+
+
