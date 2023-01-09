@@ -1,0 +1,279 @@
+Unified Portal
+Create the details of selection criteria
+    
+    @PostMapping("/students/{studentId}/products/{productId}/schoolresearch/selectioncriteria")
+    public ResponseEntity<?> createSchoolResearch(@PathVariable String studentId, @PathVariable String productId,
+                                                  @RequestBody List<DecisionMatrixModel> studentResearch){
+        try{
+            return schoolResearchService.createSchoolResearch(studentId,productId,studentResearch);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(new ResponseModel(
+                    false
+                    ,e.getMessage()
+                    ,new JSONObject())
+                    , HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+Update the details of preferences    
+
+    @PutMapping("/students/{studentId}/products/{productId}/schoolresearch/preferences")
+    public ResponseEntity<?> createSchoolResearchPreferences(@PathVariable String studentId,@PathVariable String productId,
+                                                             @RequestBody List<SchoolResearchPreferenceModel> preferences) {
+        try {
+            return schoolResearchService.createSchoolResearchPreferences(studentId,productId,preferences);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+
+Get the details of selection criteria
+
+    @GetMapping("/students/{studentId}/products/{productId}/schoolresearch/selectioncriteria")
+    public ResponseEntity<?> getSchoolResearch(
+            @PathVariable String studentId, @PathVariable String productId) {
+        try {
+            return schoolResearchService.getSchoolResearch(studentId,productId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+Update the details of selected answers
+
+    @PutMapping("/students/{studentId}/products/{productId}/schoolresearch/schoolfactscomments")
+    public ResponseEntity<?> saveSchoolFactsAndComments(@PathVariable String studentId,
+                                                        @PathVariable String productId, @RequestBody ResearchFilterSchoolModel researchFilterSchoolModel) {
+        try {
+            return schoolResearchService.saveSchoolFactsAndComments(studentId, productId,researchFilterSchoolModel);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+To generate decision matrix with the selected choices
+
+    @GetMapping("/students/{studentId}/products/{productId}/schoolresearch/decisionmatrix")
+    public ResponseEntity<?> getDecisionMatrix(@PathVariable String studentId, @PathVariable String productId) {
+        try {
+            return schoolResearchService.getDecisionMatrix(studentId, productId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+To generate the preference card
+
+    @PostMapping("/students/{studentId}/products/{productId}/schoolresearch/preference/preferencecards")
+    public ResponseEntity<?> saveSubmitPreferenceCards(@PathVariable String studentId,@PathVariable String productId,
+                                                       @RequestBody List<IdAndNameModel> preferenceIdList,@RequestHeader(value = "Authorization") String token){
+        try{
+            return schoolResearchService.saveSubmitPreferenceCards(studentId,productId,preferenceIdList,token);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+To shorlist the schools
+
+    @PostMapping ("/students/{studentId}/products/{productId}/schoolresearch/shortlistedstatus")
+    public ResponseEntity<?> saveShortlistedSchoolFields(@PathVariable String studentId,@PathVariable String productId,
+                                                         @RequestParam Boolean status){
+        try{
+            return schoolResearchService.saveShortlistedSchoolFields(studentId,productId,status);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+   
+To get the shortlisted status of schools
+
+    @GetMapping ("/students/{studentId}/products/{productId}/schoolresearch/shortlistedstatus")
+    public ResponseEntity<?> getShortlistedSchoolFields(@PathVariable String studentId,@PathVariable String productId){
+        try{
+            return schoolResearchService.getShortlistedSchoolFields(studentId,productId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+To submit the details of recommenders
+
+    @PutMapping("/students/{studentId}/products/{productId}/submitrecommenders")
+    public ResponseEntity submitRecommender(@PathVariable String studentId, @PathVariable String productId, @RequestBody List<RecommendersModel> recommendersModels,@RequestHeader (value = "Authorization") String token) {
+        return recommenderService.submitRecommender(studentId, productId, recommendersModels,token);
+    }
+
+To update the status of recommenders
+
+    @PutMapping("/students/{studentId}/products/{productId}/recommenders/status")
+    public ResponseEntity recommenderStatus(@PathVariable String studentId, @PathVariable String productId, @RequestBody List<RecommendersModel> recommendersModels, @RequestHeader (value = "Authorization") String token) {
+        return recommenderService.recommenderStatus(studentId, productId, recommendersModels,token);
+    }
+
+To create or update the recommender details 
+
+    @PutMapping("/students/{studentId}/products/{productId}/recommenderDetails")
+    public ResponseEntity<?> saveOrUpdatesRecommenderDetails(@RequestBody RecommenderDetailsModel recommenderDetails, @PathVariable String studentId, @PathVariable String productId) {
+        try {
+            return recommenderService.saveOrUpdatesRecommenderDetails(recommenderDetails, studentId, productId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+To upload the file
+
+    @PostMapping("/students/{studentId}/products/{productId}/upload/{recommenderId}/recommenderFile")
+    public ResponseEntity<?> uploadRecommenderFile(@RequestBody MultipartFile file,
+                                                   @PathVariable String studentId,
+                                                   @PathVariable String productId,
+                                                   @PathVariable String recommenderId
+                                                   ) throws IOException {
+        try {
+            return recommenderService.uploadRecommenderFile(file, studentId, productId, recommenderId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(new ResponseModel(false, "Something went wrong", new JSONObject()),
+                    HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+To get the details of recommenders
+
+    @GetMapping("/students/{studentId}/products/{productId}/recommenderdetails")
+    public ResponseEntity<ResponseModel> getRecommenderDetailsList(@PathVariable String studentId,
+                                                                   @PathVariable String productId){
+        try {
+            return recommenderService.getRecommenderDetailsList(studentId,productId);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+
+To get one recommender from the list
+    
+    @GetMapping("/students/{studentId}/products/{productId}/recommenderdetails/{recommenderId}")
+    public ResponseEntity<ResponseModel> getRecommenderById(@PathVariable String studentId,
+                                                            @PathVariable String productId,
+                                                            @PathVariable String recommenderId){
+        try {
+            return recommenderService.getRecommenderById(studentId,productId,recommenderId);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+To download the recommender request form 
+
+    @GetMapping("/students/{studentId}/products/{productId}/{recommenderId}")
+    public ResponseEntity<?> downloadRecommenderRequestForm(@PathVariable String studentId,
+                                                            @PathVariable String productId,
+                                                            @PathVariable String recommenderId,
+                                                            @RequestHeader(value = "Authorization",required = false) String token){
+        return recommenderService.downloadRecommenderRequestForm(studentId,productId,recommenderId,token);
+    }
+
+To delete the Recommender Details with uploaded request form
+    
+    @DeleteMapping("/students/{studentId}/products/{productId}/recommenderdetails/{recommenderId}")
+    public ResponseEntity<ResponseModel> deleteRecommenderById(@PathVariable String studentId,
+                                                            @PathVariable String productId,
+                                                            @PathVariable String recommenderId){
+        try {
+            return recommenderService.deleteRecommenderById(studentId,productId,recommenderId);
+        }catch (Exception e){
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+To get Recommender Guide or Recommender Request Form Link
+  
+    @GetMapping("/students/{studentId}/products/{productId}/recommenderfile")
+    public ResponseEntity<ResponseModel> getRecommenderSelectorRequestFormOrGuide(@PathVariable String studentId,
+                                                                           @PathVariable String productId,
+                                                                           @RequestParam String type) {
+        try {
+            return recommenderService.getRecommenderSelectorRequestFormOrGuide(studentId,productId,type);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+
+To give status for whether the recommender is submitted by student or not
+    
+    @GetMapping("/students/{studentId}/products/{productId}/recommenders/submittedstatus")
+    public ResponseEntity<ResponseModel> getStatusForRecommenders(@PathVariable String studentId,
+                                                                                  @PathVariable String productId) {
+        try {
+            return recommenderService.getStatusForRecommenders(studentId,productId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+    
+Whatsapp notification for students to complete the stage
+
+    @GetMapping("/whatsapp/students/obincomplete")
+    public String sendObCompletionWhatsappMessageForStudents(@RequestParam (required = false)Boolean isSend){
+        try {
+            return cronJobService.sendObCompletionWhatsappMessageForStudents(isSend);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "failed";
+        }
+    }
+
+Whatsapp notification for students to fill the details
+
+    @GetMapping("/whatsapp/students/obfillup")
+    public String sendObFillUpWhatsappMessageForStudents(@RequestParam (required = false)Boolean isSend){
+        try {
+            return cronJobService.sendObFillUpWhatsappMessageForStudents(isSend);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "failed";
+        }
+    }
+
+Mail notification for students to activate the product
+
+    @GetMapping("/mail/obactivation")
+    public String sendOBActivationMail(@RequestHeader(value = "Authorization") String token,@RequestParam (required = false) String studentId){
+        try {
+            return cronJobService.sendObActivationMail(token,studentId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "failed";
+        }
+    }
+
+Mail notification for students to schedule the call
+
+    @GetMapping("/mail/obcall")
+    public String sendOBCallMail(@RequestHeader(value = "Authorization") String token,@RequestParam (required = false) String studentId){
+        try {
+            return cronJobService.sendObCallMail(token,studentId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "failed";
+        }
+    }    
+    
